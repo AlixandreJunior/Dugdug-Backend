@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from rest_framework import serializers  # type: ignore
+from rest_framework import serializers
 
 from apps.plan.models import Plan, Subscription
 
