@@ -14,7 +14,7 @@ class User(AbstractUser):
     cpf = models.CharField(max_length=14, validators=[validate_cpf])
     phone = models.CharField(max_length=15, validators=[validate_phone])
 
-    objects = UserManager()  # type: ignore
+    objects = UserManager()
 
     groups = None
     user_permissions = None

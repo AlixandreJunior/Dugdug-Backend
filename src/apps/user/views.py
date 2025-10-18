@@ -1,28 +1,8 @@
-from typing import override
-
-from django.db.models.query import QuerySet
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.user.models import User
-from apps.user.serializer import UserSerializer
-from utils.base_view import BaseView
-
-
-class BaseUserView(BaseView[User]):
-    permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = UserSerializer
-    model: type[User] = User
-
-    @override
-    def get_queryset(self) -> QuerySet[User]:
-        return self.model.objects.all()
-
-    @override
-    def get_object(self) -> User:
-        user_id = self.request.user.pk
-        return self.model.objects.get(id=user_id)
+from utils.base_view import BaseUserView
 
 
 class UserListView(BaseUserView, generics.ListAPIView):
