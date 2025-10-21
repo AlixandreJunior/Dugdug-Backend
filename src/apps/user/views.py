@@ -1,10 +1,10 @@
-from backend.src.apps.user.serializer import LoginUserSerializer
 from rest_framework import generics, permissions, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.user.serializer import LoginUserSerializer, LogoutUserSerializer
 from utils.base_view import BaseUserView
 
 
@@ -52,7 +52,6 @@ class LoginView(generics.CreateAPIView):
         self, request: Request, *arg: object, **kwargs: dict[object, object]
     ) -> Response:
         serializer = self.get_serializer(data=request.data)
-        print(serializer.is_valid())
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
@@ -67,7 +66,7 @@ class LoginView(generics.CreateAPIView):
         )
 
 
-class RefreshView(generics.GenericAPIView):
+class RefreshView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
 
     def post(
@@ -98,11 +97,26 @@ class RefreshView(generics.GenericAPIView):
 
 
 class LogoutView(generics.CreateAPIView):
+    serializer_class = LogoutUserSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def post(
+    def create(
         self, request: Request, *args: object, **kwargs: dict[object, object]
     ) -> Response:
-        return Response(
-            {"detail": "Logout realizado com sucesso."}, status=status.HTTP_200_OK
-        )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        refresh_token = serializer.validated_data["refresh"]
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(
+                {"detail": "Logout realizado com sucesso."},
+                status=status.HTTP_205_RESET_CONTENT,
+            )
+        except TokenError:
+            return Response(
+                {"error": "Token inválido ou expirado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

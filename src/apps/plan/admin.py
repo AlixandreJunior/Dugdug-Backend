@@ -5,7 +5,7 @@ from .models import Plan, Subscription
 
 
 @admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin[Plan]):
+class PlanAdmin(admin.ModelAdmin):  # type: ignore[misc]
     list_display = ("name", "price", "duration_days")
     search_fields = ("name",)
     ordering = ("price",)
@@ -14,7 +14,7 @@ class PlanAdmin(admin.ModelAdmin[Plan]):
 
 
 @admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin[Subscription]):
+class SubscriptionAdmin(admin.ModelAdmin):  # type: ignore[misc]
     list_display = (
         "costumer",
         "plan",
