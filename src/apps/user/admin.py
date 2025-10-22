@@ -1,11 +1,10 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
 from apps.user.models import User
 
 
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(admin.ModelAdmin):  # type: ignore
     model = User
     list_display = (
         "id",
@@ -40,22 +39,4 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
-    )
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": (
-                    "username",
-                    "email",
-                    "cpf",
-                    "phone",
-                    "password1",
-                    "password2",
-                    "is_active",
-                    "is_staff",
-                ),
-            },
-        ),
     )

@@ -4,7 +4,7 @@ from .models import Affiliate, Payout
 
 
 @admin.register(Affiliate)
-class AffiliateAdmin(admin.ModelAdmin[Affiliate]):
+class AffiliateAdmin(admin.ModelAdmin):  # type: ignore[misc]
     list_display = (
         "user",
         "code",
@@ -42,7 +42,7 @@ class AffiliateAdmin(admin.ModelAdmin[Affiliate]):
 
 
 @admin.register(Payout)
-class PayoutAdmin(admin.ModelAdmin[Payout]):
+class PayoutAdmin(admin.ModelAdmin):  # type: ignore[misc]
     list_display = (
         "affiliate",
         "amount",

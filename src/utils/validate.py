@@ -2,6 +2,8 @@ import re
 
 from django.core.exceptions import ValidationError
 
+from apps.user import models
+
 
 def validate_cpf(value: str) -> None:
     cpf = re.sub(r"\D", "", value)
@@ -43,3 +45,28 @@ def validate_phone(value: str) -> None:
     if digits_only == digits_only[0] * len(digits_only):
         message = "Telefone inválido: todos os dígitos são iguais."
         raise ValidationError(message)
+
+
+def validate_password(password: str) -> None:
+    if len(password) < 8:
+        msg = "A senha deve ter no mínimo 8 caracteres."
+        raise ValidationError(msg)
+    if not re.search(r"[A-Z]", password):
+        msg = "A senha deve conter ao menos uma letra maiúscula."
+        raise ValidationError(msg)
+    if not re.search(r"[a-z]", password):
+        msg = "A senha deve conter ao menos uma letra minúscula."
+        raise ValidationError(msg)
+    if not re.search(r"\d", password):
+        msg = "A senha deve conter ao menos um número."
+        raise ValidationError(msg)
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        msg = "A senha deve conter ao menos um caractere especial."
+        raise ValidationError(msg)
+
+
+def validate_email(email: str) -> str:
+    if models.User.objects.filter(email__iexact=email).exists():
+        msg = "User with this email already exists."
+        raise ValidationError(msg)
+    return email

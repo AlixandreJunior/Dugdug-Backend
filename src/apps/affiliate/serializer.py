@@ -6,7 +6,7 @@ from apps.affiliate.models import Affiliate, Payout
 class AffiliateSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
 
-    class Meta(serializers.ModelSerializer.Meta):
+    class Meta:  # type: ignore
         model = Affiliate
         fields = (
             "id",
@@ -28,7 +28,7 @@ class AffiliateSerializer(serializers.ModelSerializer):
 
 
 class PayoutSerializer(serializers.ModelSerializer):
-    class Meta(serializers.ModelSerializer.Meta):
+    class Meta:  # type: ignore
         model = Payout
         fields = (
             "id",
