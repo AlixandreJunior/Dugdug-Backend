@@ -4,12 +4,15 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from apps.user.models import User
-from utils.validate import validate_cpf, validate_password, validate_phone
+from utils.validate import (
+    validate_cpf,
+    validate_email,
+    validate_password,
+    validate_phone,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)  # <-- write-only
-
     class Meta:  # type: ignore
         model = User
         fields = (
@@ -22,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "password",
         )
+        extra_kwargs = {"password": {"write_only": True}}  # noqa
 
     def validate_cpf(self, cpf: str) -> str:
         validate_cpf(cpf)
@@ -35,12 +39,38 @@ class UserSerializer(serializers.ModelSerializer):
         validate_password(password)
         return password
 
+    def validate_email(self, email: str) -> str:
+        email = email.lower().strip()
+        validate_email(email)
+        return email
+
+    def to_internal_value(self, data: dict[object, object]) -> None:
+        allowed_fields = set(self.fields.keys())
+        received_fields = set(data.keys())
+
+        extra_fields = received_fields - allowed_fields
+        if extra_fields:
+            raise serializers.ValidationError(
+                {str(field): "Campo não permitido." for field in extra_fields}
+            )
+
+        return super().to_internal_value(data)
+
     def create(self, validated_data: dict[str, object]) -> User:
         password = cast("str", validated_data.pop("password"))
         user = User(**validated_data)
         user.set_password(password)
         user.save()
         return user
+
+    def update(self, instance: User, validated_data: dict[str, str]) -> User:
+        for attr, value in validated_data.items():
+            if attr == "password":
+                instance.set_password(value)
+            else:
+                setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 class LoginUserSerializer(serializers.Serializer):

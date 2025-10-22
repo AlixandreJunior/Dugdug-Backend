@@ -1,13 +1,15 @@
+from typing import cast
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.user.models import User
 from utils.user_mixin import UserMixin
 
 
 class UserViewTests(APITestCase, UserMixin):
     def setUp(self):
-        # Usuário autenticado base
         self.user = self.make_user_auth(
             username="user1",
             email="user1@email.com",
@@ -128,6 +130,27 @@ class UserViewTests(APITestCase, UserMixin):
             "user with this email already exists", str(response.json()).lower()
         )
 
+    def test_create_duplicate_email_case_insensitive(self):
+        self.client.logout()
+        self.make_user_not_auth(**self.user_data)
+        data = {
+            **self.user_data,
+            "email": self.user_data["email"].upper(),
+            "username": "otheruser",
+        }
+        response = self.client.post(self.create_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            "user with this email already exists", str(response.json()).lower()
+        )
+
+    def test_create_with_extra_field(self):
+        self.client.logout()
+        data = cast("dict[str, object]", {**self.user_data, "is_staff": True})
+        response = self.client.post(self.create_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("is_staff", response.json())
+
     def test_password_too_short(self):
         data = {**self.user_data, "password": "S1a!"}  # muito curta
         response = self.client.post(self.create_url, data, format="json")
@@ -169,7 +192,7 @@ class UserViewTests(APITestCase, UserMixin):
         )
 
     def test_password_missing_special_character(self):
-        data = {**self.user_data, "password": "Senha1234"}  # sem caractere especial
+        data = {**self.user_data, "password": "Senha1234"}
         response = self.client.post(self.create_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn(
@@ -177,7 +200,16 @@ class UserViewTests(APITestCase, UserMixin):
             response.json().get("password"),
         )
 
-    # -------------------------------
+    def test_password_is_hashed_on_create(self):
+        self.client.logout()
+        response = self.client.post(self.create_url, self.user_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username=self.user_data["username"])
+        self.assertNotEqual(user.password, self.user_data["password"])
+        self.assertTrue(user.check_password(self.user_data["password"]))
+
+    # -------------------------W------
     # LIST VIEW
     # -------------------------------
 
@@ -217,6 +249,23 @@ class UserViewTests(APITestCase, UserMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, "Usuário atualizado com sucesso.")
 
+    def test_partial_update_multiple_fields(self):
+        data = {"email": "novo@email.com", "phone": "(12)99999-9999"}
+        response = self.client.patch(self.update_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, data["email"])
+        self.assertEqual(self.user.phone, data["phone"])
+
+    def test_update_password_rehash(self):
+        data = {"password": "NovaSenha321!"}
+        response = self.client.patch(self.update_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(data["password"]))
+
     def test_update_invalid_email(self):
         data = {"email": "emailinvalido"}
         response = self.client.patch(self.update_url, data, format="json")
@@ -241,6 +290,7 @@ class UserViewTests(APITestCase, UserMixin):
         response = self.client.delete(self.delete_url, format="json")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(response.data, "Usuário excluído com sucesso.")
+        self.assertFalse(User.objects.filter(id=self.user.pk).exists())
 
     def test_delete_unauthenticated(self):
         self.client.logout()

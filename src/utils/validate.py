@@ -2,6 +2,8 @@ import re
 
 from django.core.exceptions import ValidationError
 
+from apps.user import models
+
 
 def validate_cpf(value: str) -> None:
     cpf = re.sub(r"\D", "", value)
@@ -61,3 +63,10 @@ def validate_password(password: str) -> None:
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         msg = "A senha deve conter ao menos um caractere especial."
         raise ValidationError(msg)
+
+
+def validate_email(email: str) -> str:
+    if models.User.objects.filter(email__iexact=email).exists():
+        msg = "User with this email already exists."
+        raise ValidationError(msg)
+    return email
