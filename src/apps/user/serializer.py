@@ -1,11 +1,15 @@
+from typing import cast
+
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from apps.user.models import User
-from utils.validate import validate_cpf, validate_phone
+from utils.validate import validate_cpf, validate_password, validate_phone
 
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)  # <-- write-only
+
     class Meta:  # type: ignore
         model = User
         fields = (
@@ -16,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "cpf",
             "phone",
+            "password",
         )
 
     def validate_cpf(self, cpf: str) -> str:
@@ -25,6 +30,17 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_phone(self, phone: str) -> str:
         validate_phone(phone)
         return phone
+
+    def validate_password(self, password: str) -> str:
+        validate_password(password)
+        return password
+
+    def create(self, validated_data: dict[str, object]) -> User:
+        password = cast("str", validated_data.pop("password"))
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
 
 class LoginUserSerializer(serializers.Serializer):

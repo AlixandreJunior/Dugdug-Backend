@@ -69,6 +69,19 @@ class AuthTest(APITestCase, UserMixin):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Usuário ou senha incorretos!!", response.json().get("detail"))
 
+    def test_login_with_wrong_password(self):
+        data = {"identifier": self.user_data["email"], "password": "wrongpassword"}
+        response = self.client.post(self.login_api, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Usuário ou senha incorretos!!", response.json().get("detail"))
+
+    def test_login_empty_fields(self):
+        data = {"identifier": "", "password": ""}
+        response = self.client.post(self.login_api, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("This field may not be blank.", response.json().get("identifier"))
+        self.assertIn("This field may not be blank.", response.json().get("password"))
+
     def test_login_with_inactive_user_should_fail(self) -> None:
         user = self.make_user_not_auth(**self.user_data)
         user.is_active = False

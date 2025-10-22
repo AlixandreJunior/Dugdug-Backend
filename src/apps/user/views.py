@@ -1,9 +1,11 @@
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.user.models import User
 from apps.user.serializer import LoginUserSerializer, LogoutUserSerializer
 from utils.base_view import BaseUserView
 
@@ -13,7 +15,13 @@ class UserListView(BaseUserView, generics.ListAPIView):
 
 
 class UserDetailView(BaseUserView, generics.RetrieveAPIView):
-    pass
+    def get_object(self) -> User:
+        username: str = self.kwargs.get("username")
+        try:
+            return self.model.objects.get(username=username)
+        except self.model.DoesNotExist as e:
+            message = "Diário não encontrado."
+            raise NotFound(message) from e
 
 
 class UserUpdateView(BaseUserView, generics.UpdateAPIView):
@@ -24,7 +32,7 @@ class UserUpdateView(BaseUserView, generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        return Response("Usuario excluido com sucesso.", status=status.HTTP_200_OK)
+        return Response("Usuário atualizado com sucesso.", status=status.HTTP_200_OK)
 
 
 class UserDeleteView(BaseUserView, generics.DestroyAPIView):
@@ -32,16 +40,18 @@ class UserDeleteView(BaseUserView, generics.DestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(
-            "Usuario excluido com sucesso.", status=status.HTTP_204_NO_CONTENT
+            "Usuário excluído com sucesso.", status=status.HTTP_204_NO_CONTENT
         )
 
 
 class UserCreateView(BaseUserView, generics.CreateAPIView):
+    permission_classes = (permissions.AllowAny,)
+
     def create(self, request: Request, *args: object, **kwargs: object) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        return Response("Usuario criado com sucesso.", status=status.HTTP_201_CREATED)
+        return Response("Usuário criado com sucesso.", status=status.HTTP_201_CREATED)
 
 
 class LoginView(generics.CreateAPIView):
