@@ -9,4 +9,5 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("refresh/", RefreshView.as_view(), name="refresh"),
     path("user/", include("apps.user.urls")),
+    path("affiliate/", include("apps.affiliate.urls")),
 ]

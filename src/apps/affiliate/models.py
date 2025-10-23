@@ -1,6 +1,9 @@
+import uuid
+from decimal import Decimal
 from typing import ClassVar
 
 from django.db import models
+from django.dispatch import receiver
 from django.utils import timezone
 
 from apps.user.models import User
@@ -20,15 +23,19 @@ class Affiliate(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     code = models.CharField(max_length=26, unique=True)
-    commission_balance = models.DecimalField(max_digits=10, decimal_places=2)
-    total_earned = models.DecimalField(max_digits=10, decimal_places=2)
+    commission_balance = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal(0)
+    )
+    total_earned = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal(0)
+    )
     pix_key = models.CharField(max_length=120)
     pix_key_type = models.CharField(
         max_length=10,
         choices=PixKeyTypeChoices.choices,
         default=PixKeyTypeChoices.CPF,
     )
-    joined_at = models.DateField(default=timezone.now)
+    joined_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
         return f"Afiliado {self.user.username}"
@@ -57,3 +64,11 @@ class Payout(models.Model):
 
     def __str__(self) -> str:
         return f"{self.affiliate.user.username} - R${self.amount} ({self.status})"
+
+
+@receiver(models.signals.pre_save, sender=Affiliate)
+def generate_affiliate_code(
+    sender: Affiliate, instance: Affiliate, **kwargs: object
+) -> None:
+    if not instance.code:
+        instance.code = f"AFF{uuid.uuid4().hex[:8].upper()}"

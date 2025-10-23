@@ -18,6 +18,7 @@ class AffiliateSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
+            "user",
             "commission_balance",
             "total_earned",
             "joined_at",
@@ -39,8 +40,8 @@ class PayoutSerializer(serializers.ModelSerializer):
             "notes",
         )
         read_only_fields = (
+            "affiliate",
             "id",
-            "status",
             "requested_at",
             "paid_at",
         )
