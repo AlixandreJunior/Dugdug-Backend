@@ -120,7 +120,8 @@ class LogoutView(generics.CreateAPIView):
 
         try:
             token = RefreshToken(refresh_token)
-            token.blacklist()
+            if hasattr(token, "blacklist"):
+                token.blacklist()
             return Response(
                 {"detail": "Logout realizado com sucesso."},
                 status=status.HTTP_205_RESET_CONTENT,

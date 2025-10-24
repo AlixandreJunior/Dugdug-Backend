@@ -99,12 +99,30 @@ root = ["src"]
 # Configuração de regras para emular o "modo estrito"
 # "error" faz o Ty sair com um código de erro (útil para CI).
 [tool.ty.rules]
-# Exemplos de regras para um modo mais estrito (consulte a documentação do Ty para a lista completa)
+# Regras que você já tinha (equivalentes a "reportMissing*"):
 "invalid_argument_type" = "error"
 "invalid_type_form" = "error"
 "missing_return_annotation" = "error"
 "missing_parameter_annotation" = "error"
-# Adicione outras regras que você considera "estritas" e defina-as como "error"
+
+# --- Novas regras para emular o modo "strict" do Pyright ---
+
+# Proíbe definições de funções (defs) e métodos sem anotações
+"disallow_untyped_defs" = "error"
+# Proíbe chamadas para funções (calls) que não são tipadas
+"disallow_untyped_calls" = "error"
+
+# Proíbe classes que herdam de classes não tipadas (ex: herdar de 'object' implicitamente)
+"untyped_base_class" = "error"
+# Proíbe o uso de decoradores (decorators) que não têm tipos
+"untyped_decorator" = "error"
+
+# Força a verificação de 'None' (equivalente a "strictNullChecks" ou "reportOptionalAccess")
+"unsafe_optional_access" = "error"
+# Detecta overrides de métodos com assinaturas incompatíveis
+"incompatible_method_override" = "error"
+# Detecta overrides de variáveis/atributos com tipos incompatíveis
+"incompatible_variable_override" = "error"
 
 
 # Configuração de 'overrides' (como o per-file-ignores do Ruff)
