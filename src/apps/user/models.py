@@ -1,5 +1,3 @@
-from typing import Self
-
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 
@@ -17,7 +15,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=15, unique=True, validators=[validate_phone])
     password = models.CharField(max_length=128, null=False)
 
-    objects = UserManager[Self]()
+    objects = UserManager["User"]()
 
     groups = None
     user_permissions = None

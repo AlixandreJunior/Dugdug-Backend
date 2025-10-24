@@ -65,7 +65,6 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.client.force_authenticate(user=self.staff)
         data = {"pix_key": "987654321", "pix_key_type": "email"}
         response = self.client.post(self.create_url, data)
-        print(response.json())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("id", response.json())
 
@@ -74,6 +73,14 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         data = {"pix_key": "00000000", "pix_key_type": "cpf"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_affiliate_invalid_pix_key(self):
+        """Testa erro de criação com chave Pix inválida."""
+        self.client.force_authenticate(user=self.staff)
+        data = {"pix_key": "", "pix_key_type": "cpf"}  # campo obrigatório
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
 
     def test_list_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
@@ -100,6 +107,13 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.affiliate.refresh_from_db()
         self.assertEqual(self.affiliate.pix_key, "111222333")
+
+    def test_update_affiliate_invalid_field(self):
+        """Usuário tenta alterar campo bloqueado (commission_balance)."""
+        self.client.force_authenticate(user=self.user)
+        data = {"commission_balance": 9999}
+        response = self.client.patch(self.update_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_delete_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
@@ -160,7 +174,6 @@ class PayoutViewTests(APITestCase, AffiliateMixin):
         self.client.force_authenticate(user=new_user)
         data: dict[str, object] = {"amount": 50, "pix_key": "63787432078"}
         response = self.client.post(self.create_url, data)
-        print(response.json())
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_list_payout_user(self):
