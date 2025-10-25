@@ -1,6 +1,7 @@
 from rest_framework import serializers  # type: ignore
 
 from apps.affiliate.models import Affiliate, Payout
+from utils.validate import validate_pix_key
 
 
 class AffiliateSerializer(serializers.ModelSerializer):
@@ -24,6 +25,12 @@ class AffiliateSerializer(serializers.ModelSerializer):
             "joined_at",
             "code",
         )
+
+    def validate_pix_key(self, key: str) -> str:
+        key_type = self.initial_data.get("pix_key_type")
+        validate_pix_key(key, key_type)
+
+        return key
 
 
 class PayoutSerializer(serializers.ModelSerializer):

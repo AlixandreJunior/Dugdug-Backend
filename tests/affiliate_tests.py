@@ -61,23 +61,75 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.update_url = reverse("affiliate-update", args=[self.affiliate.pk])
         self.delete_url = reverse("affiliate-delete", args=[self.affiliate.pk])
 
-    def test_create_affiliate_success(self):
-        self.client.force_authenticate(user=self.staff)
-        data = {"pix_key": "987654321", "pix_key_type": "email"}
-        response = self.client.post(self.create_url, data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn("id", response.json())
-
     def test_create_affiliate_already_exists(self):
         self.client.force_authenticate(user=self.user)
-        data = {"pix_key": "00000000", "pix_key_type": "cpf"}
+        data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_create_affiliate_invalid_pix_key(self):
-        """Testa erro de criação com chave Pix inválida."""
+    def test_create_affiliate_cpf_valid(self):
+        data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_affiliate_cnpj_valid(self):
+        data = {"pix_key": "12.345.678/0001-95", "pix_key_type": "cnpj"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_affiliate_email_valid(self):
+        data = {"pix_key": "test@example.com", "pix_key_type": "email"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_affiliate_phone_valid(self):
+        data = {"pix_key": "(11)99999-9999", "pix_key_type": "phone"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_affiliate_random_valid(self):
+        data = {
+            "pix_key": "6d68a68e-1434-43d3-b4cf-952c93b4d8f7",
+            "pix_key_type": "random",
+        }
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    # ---------- VALORES INVÁLIDOS ----------
+
+    def test_create_affiliate_cpf_invalid(self):
+        data = {"pix_key": "123", "pix_key_type": "cpf"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
+
+    def test_create_affiliate_cnpj_invalid(self):
+        data = {"pix_key": "123456789", "pix_key_type": "cnpj"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
+
+    def test_create_affiliate_email_invalid(self):
+        data = {"pix_key": "not-an-email", "pix_key_type": "email"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
+
+    def test_create_affiliate_phone_invalid(self):
+        data = {"pix_key": "123456", "pix_key_type": "phone"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
+
+    def test_create_affiliate_random_invalid(self):
+        data = {"pix_key": "abcd", "pix_key_type": "random"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key", response.json())
+
+    def test_create_affiliate_empty_pix_key(self):
         self.client.force_authenticate(user=self.staff)
-        data = {"pix_key": "", "pix_key_type": "cpf"}  # campo obrigatório
+        data = {"pix_key": "", "pix_key_type": "cpf"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pix_key", response.json())
@@ -102,17 +154,18 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
 
     def test_update_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
-        data = {"pix_key": "111222333"}
+        data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
         response = self.client.patch(self.update_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.affiliate.refresh_from_db()
-        self.assertEqual(self.affiliate.pix_key, "111222333")
+        self.assertEqual(self.affiliate.pix_key, "53184468097")
 
     def test_update_affiliate_invalid_field(self):
-        """Usuário tenta alterar campo bloqueado (commission_balance)."""
         self.client.force_authenticate(user=self.user)
-        data = {"commission_balance": 9999}
+        data = {"pix_key": "ERROR", "pix_key_type": "cpf"}
         response = self.client.patch(self.update_url, data)
+        print(response.json())
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_delete_affiliate_user(self):

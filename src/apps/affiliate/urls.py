@@ -14,7 +14,6 @@ from apps.affiliate.views import (
 )
 
 urlpatterns = [
-    # Affiliate
     path("affiliates/create/", AffiliateCreateView.as_view(), name="affiliate-create"),
     path("affiliates/", AffiliateListView.as_view(), name="affiliate-list"),
     path(
@@ -30,7 +29,6 @@ urlpatterns = [
         AffiliateDeleteView.as_view(),
         name="affiliate-delete",
     ),
-    # Payout
     path("payouts/create/", PayoutCreateView.as_view(), name="payout-create"),
     path("payouts/", PayoutListView.as_view(), name="payout-list"),
     path("payouts/<int:pk>/", PayoutDetailView.as_view(), name="payout-detail"),

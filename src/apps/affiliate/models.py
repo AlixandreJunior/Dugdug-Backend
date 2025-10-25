@@ -29,7 +29,7 @@ class Affiliate(models.Model):
     total_earned = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal(0)
     )
-    pix_key = models.CharField(max_length=120)
+    pix_key = models.CharField(max_length=120, unique=True)
     pix_key_type = models.CharField(
         max_length=10,
         choices=PixKeyTypeChoices.choices,

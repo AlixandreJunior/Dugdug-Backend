@@ -7,7 +7,7 @@ from utils.validate import validate_cpf, validate_phone
 class User(AbstractUser):
     class Meta:
         app_label = "user"
-        verbose_name = "User"
+        verbose_name: str = "User"
         verbose_name_plural = "Users"
 
     email = models.EmailField(max_length=150, unique=True)

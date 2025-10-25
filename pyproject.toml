@@ -37,8 +37,7 @@ dependencies = [
 
 
 [project.optional-dependencies]
-# Substitua 'pyright' por 'ty' se for instalá-lo como dependência de desenvolvimento
-dev = ["ruff", "ty", "pytest", "pytest-xdist", "pytest-django"]
+dev = ["ruff", "pyright", "pytest", "pytest-xdist", "pytest-django"]
 
 # ============================
 # Lint e formatação (Ruff)
@@ -53,9 +52,40 @@ exclude = ["venv", ".venv", "env", ".env", "node_modules", "__pycache__"]
 
 [tool.ruff.lint]
 select = [
-    "ASYNC", "A", "ANN", "B", "BLE", "C4", "C90", "COM", "E", "EM", "ERA", "EXE",
-    "F", "FBT", "FIX", "I", "ICN", "ISC", "Q", "RET", "RSE", "S", "SIM", "SLF",
-    "T10", "T20", "TC", "TD", "TRY", "UP", "W", "YTT", "RUF", "N",
+    "ASYNC",
+    "A",
+    "ANN",
+    "B",
+    "BLE",
+    "C4",
+    "C90",
+    "COM",
+    "E",
+    "EM",
+    "ERA",
+    "EXE",
+    "F",
+    "FBT",
+    "FIX",
+    "I",
+    "ICN",
+    "ISC",
+    "Q",
+    "RET",
+    "RSE",
+    "S",
+    "SIM",
+    "SLF",
+    "T10",
+    "T20",
+    "TC",
+    "TD",
+    "TRY",
+    "UP",
+    "W",
+    "YTT",
+    "RUF",
+    "N",
 ]
 ignore = ["T201", "COM812"]
 
@@ -69,20 +99,17 @@ line-ending = "lf"
 
 [tool.ruff.lint.isort]
 # Ensina ao Ruff qual é o pacote principal do seu projeto.
+# Deve ser o mesmo nome da pasta dentro de 'src/'.
 known-first-party = ["config"]
 
 
 # ============================
-# Tipagem (Ty - Astral)
+# Tipagem (Pyright)
 # ============================
-[tool.ty]
-# Define a versão do Python que o Ty deve usar para análise
-python-version = "3.13"
-
-# Lista de diretórios para incluir na verificação
-include = ["src", "tests"]
-
-# Lista de diretórios/arquivos para excluir
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+include = ["src", 'tests']
 exclude = [
     "**/venv",
     "**/.venv",
@@ -91,56 +118,21 @@ exclude = [
     "**/node_modules",
     "**/__pycache__",
 ]
-
-# Define os diretórios raiz do seu projeto (onde encontrar módulos)
-# O Ty pode autodetectar layouts 'src', mas ser explícito é melhor.
-root = ["src"]
-
-# Configuração de regras para emular o "modo estrito"
-# "error" faz o Ty sair com um código de erro (útil para CI).
-[tool.ty.rules]
-# Regras que você já tinha (equivalentes a "reportMissing*"):
-"invalid_argument_type" = "error"
-"invalid_type_form" = "error"
-"missing_return_annotation" = "error"
-"missing_parameter_annotation" = "error"
-
-# --- Novas regras para emular o modo "strict" do Pyright ---
-
-# Proíbe definições de funções (defs) e métodos sem anotações
-"disallow_untyped_defs" = "error"
-# Proíbe chamadas para funções (calls) que não são tipadas
-"disallow_untyped_calls" = "error"
-
-# Proíbe classes que herdam de classes não tipadas (ex: herdar de 'object' implicitamente)
-"untyped_base_class" = "error"
-# Proíbe o uso de decoradores (decorators) que não têm tipos
-"untyped_decorator" = "error"
-
-# Força a verificação de 'None' (equivalente a "strictNullChecks" ou "reportOptionalAccess")
-"unsafe_optional_access" = "error"
-# Detecta overrides de métodos com assinaturas incompatíveis
-"incompatible_method_override" = "error"
-# Detecta overrides de variáveis/atributos com tipos incompatíveis
-"incompatible_variable_override" = "error"
-
-
-# Configuração de 'overrides' (como o per-file-ignores do Ruff)
-[[tool.ty.overrides]]
-include = ["tests/**"]
-# Exemplo de como relaxar regras específicas em testes:
-rules = { "missing_return_annotation" = "ignore" }
-
+venv = ".venv"
+venvPath = "."
+executionEnvironments = [{ root = "src" }]
 
 # ============================
 # Testes (Pytest)
 # ============================
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
-# Adiciona 'src' ao path do Python durante os testes.
+# Adiciona 'src' ao path do Python durante os testes. Isso permite que
+# os testes em `tests/` importem os módulos de `src/` sem erros.
 pythonpath = ["src"]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "config.settings"
+
 
 
 # ============================
@@ -151,7 +143,10 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
+# Informa ao setuptools para encontrar os pacotes dentro da pasta 'src'.
+# Essencial para a estrutura de layout com 'src/'.
 where = ["src"]
 
 [tool.setuptools]
+# Mapeia o diretório raiz de pacotes para 'src'.
 package-dir = { "" = "src" }
