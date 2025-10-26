@@ -22,7 +22,7 @@ class Affiliate(models.Model):
         RANDOM = "random", "Chave Aleatória"
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    code = models.CharField(max_length=26, unique=True)
+    code = models.CharField(max_length=26, unique=True, blank=True)
     commission_balance = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal(0)
     )

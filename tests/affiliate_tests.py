@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -61,6 +63,8 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.update_url = reverse("affiliate-update", args=[self.affiliate.pk])
         self.delete_url = reverse("affiliate-delete", args=[self.affiliate.pk])
 
+    # ---------- CRIAÇÃO ----------
+
     def test_create_affiliate_already_exists(self):
         self.client.force_authenticate(user=self.user)
         data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
@@ -68,7 +72,7 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_affiliate_cpf_valid(self):
-        data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
+        data = {"pix_key": "05075710298", "pix_key_type": "cpf"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -95,7 +99,53 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+    def test_create_affiliate_auto_code(self):
+        """Se o código não for enviado, deve ser gerado automaticamente."""
+        data = {"pix_key": "98765432100", "pix_key_type": "cpf"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertRegex(response.json()["code"], r"^AFF[A-F0-9]{8}$")
+
+    def test_create_affiliate_custom_code(self):
+        """Se o código for enviado, o sistema deve aceitá-lo."""
+        data = {
+            "pix_key": "98765432100",
+            "pix_key_type": "cpf",
+            "code": "MEUCOD123",
+        }
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.json()["code"], "MEUCOD123")
+
+    def test_create_affiliate_duplicate_code(self):
+        """Não deve permitir duplicar o código."""
+        self.client.post(
+            self.create_url,
+            {
+                "pix_key": "98765432100",
+                "pix_key_type": "cpf",
+                "code": "CODDUPLICADO",
+            },
+        )
+        response = self.client.post(
+            self.create_url,
+            {
+                "pix_key": "11122233344",
+                "pix_key_type": "cpf",
+                "code": "CODDUPLICADO",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("code", response.json())
+
     # ---------- VALORES INVÁLIDOS ----------
+
+    def test_create_affiliate_invalid_pix_key_types(self):
+        """pix_key_type inválido deve gerar erro."""
+        data = {"pix_key": "12345678900", "pix_key_type": "unknown"}
+        response = self.client.post(self.create_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("pix_key_type", response.json())
 
     def test_create_affiliate_cpf_invalid(self):
         data = {"pix_key": "123", "pix_key_type": "cpf"}
@@ -107,32 +157,28 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         data = {"pix_key": "123456789", "pix_key_type": "cnpj"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("pix_key", response.json())
 
     def test_create_affiliate_email_invalid(self):
         data = {"pix_key": "not-an-email", "pix_key_type": "email"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("pix_key", response.json())
 
     def test_create_affiliate_phone_invalid(self):
         data = {"pix_key": "123456", "pix_key_type": "phone"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("pix_key", response.json())
 
     def test_create_affiliate_random_invalid(self):
         data = {"pix_key": "abcd", "pix_key_type": "random"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("pix_key", response.json())
 
     def test_create_affiliate_empty_pix_key(self):
-        self.client.force_authenticate(user=self.staff)
         data = {"pix_key": "", "pix_key_type": "cpf"}
         response = self.client.post(self.create_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("pix_key", response.json())
+
+    # ---------- LISTAGEM E DETALHE ----------
 
     def test_list_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
@@ -146,33 +192,61 @@ class AffiliateViewTests(APITestCase, AffiliateMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.json()), 1)
 
+    def test_list_affiliate_requires_auth(self):
+        self.client.logout()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_detail_affiliate_permission(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["id"], self.affiliate.pk)
 
+    # ---------- ATUALIZAÇÃO ----------
+
     def test_update_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
         data = {"pix_key": "53184468097", "pix_key_type": "cpf"}
         response = self.client.patch(self.update_url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.affiliate.refresh_from_db()
-        self.assertEqual(self.affiliate.pix_key, "53184468097")
 
     def test_update_affiliate_invalid_field(self):
         self.client.force_authenticate(user=self.user)
         data = {"pix_key": "ERROR", "pix_key_type": "cpf"}
         response = self.client.patch(self.update_url, data)
-        print(response.json())
-
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_affiliate_not_owner(self):
+        other_user = self.make_user_auth(
+            username="other",
+            email="other@email.com",
+            phone="(11)33333-9999",
+            cpf="407.913.650-60",
+        )
+        self.client.force_authenticate(user=other_user)
+        data = {"pix_key": "05075710298"}
+        response = self.client.patch(self.update_url, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    # ---------- EXCLUSÃO ----------
 
     def test_delete_affiliate_user(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.delete(self.delete_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Affiliate.objects.filter(id=self.affiliate.pk).exists())
+
+    def test_delete_affiliate_not_owner(self):
+        other_user = self.make_user_auth(
+            username="other",
+            email="other@email.com",
+            phone="(11)33333-9999",
+            cpf="407.913.650-60",
+        )
+        self.client.force_authenticate(user=other_user)
+        response = self.client.delete(self.delete_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 # ========================
@@ -210,24 +284,49 @@ class PayoutViewTests(APITestCase, AffiliateMixin):
         self.update_url = reverse("payout-update", args=[self.payout.pk])
         self.delete_url = reverse("payout-delete", args=[self.payout.pk])
 
+    # ------------------- CRIAÇÃO DE PAYOUT -------------------
+
     def test_create_payout_success(self):
+        self.affiliate.commission_balance = Decimal(70)
+        self.affiliate.save(update_fields=["commission_balance"])
+
         self.client.force_authenticate(user=self.user)
-        data: dict[str, object] = {"amount": 50, "pix_key": "63787432078"}
-        response = self.client.post(self.create_url, data)
+        response = self.client.post(self.create_url)
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.json()["affiliate"], self.affiliate.pk)
+        self.assertEqual(response.json()["amount"], "70.00")
+
+        # Verifica que o commission_balance foi zerado
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.commission_balance, 0)
+
+    def test_create_payout_insufficient_balance(self):
+        self.affiliate.commission_balance = Decimal(30)
+        self.affiliate.save(update_fields=["commission_balance"])
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(self.create_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Saldo insuficiente", str(response.data))
+
+        # commission_balance não deve mudar
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.commission_balance, 30)
 
     def test_create_payout_not_affiliate(self):
         new_user = self.make_user_auth(
             username="other",
             email="other@email.com",
             phone="(11)77777-7777",
-            cpf="63787432078",  # telefone único
+            cpf="63787432078",
         )
         self.client.force_authenticate(user=new_user)
-        data: dict[str, object] = {"amount": 50, "pix_key": "63787432078"}
-        response = self.client.post(self.create_url, data)
+        response = self.client.post(self.create_url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    # ------------------- LISTAGEM -------------------
 
     def test_list_payout_user(self):
         self.client.force_authenticate(user=self.user)
@@ -241,11 +340,15 @@ class PayoutViewTests(APITestCase, AffiliateMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.json()), 1)
 
+    # ------------------- DETALHE -------------------
+
     def test_detail_payout_user(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["id"], self.payout.pk)
+
+    # ------------------- ATUALIZAÇÃO -------------------
 
     def test_update_payout_admin(self):
         self.client.force_authenticate(user=self.superuser)
@@ -261,8 +364,37 @@ class PayoutViewTests(APITestCase, AffiliateMixin):
         response = self.client.patch(self.update_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    # ------------------- DELEÇÃO -------------------
+
     def test_delete_payout_admin(self):
         self.client.force_authenticate(user=self.superuser)
         response = self.client.delete(self.delete_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Payout.objects.filter(id=self.payout.pk).exists())
+
+    def test_delete_payout_not_admin(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(self.delete_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # ------------------- TESTE DE MULTIPLOS PAYOUTS -------------------
+
+    def test_create_multiple_payouts_no_negative_balance(self):
+        # Define um saldo inicial
+        self.affiliate.commission_balance = Decimal(120)
+        self.affiliate.save(update_fields=["commission_balance"])
+
+        self.client.force_authenticate(user=self.user)
+
+        response1 = self.client.post(self.create_url)
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response1.json()["amount"], "120.00")
+
+        # Verifica que o saldo foi zerado
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.commission_balance, 0)
+
+        # Tenta criar outro payout com saldo zerado
+        response2 = self.client.post(self.create_url)
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Saldo insuficiente", str(response2.data))

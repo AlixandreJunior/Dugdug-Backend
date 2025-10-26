@@ -33,6 +33,9 @@ class AffiliateListView(generics.ListAPIView):
 
     def get_queryset(self) -> QuerySet[Affiliate]:
         user = cast("User", self.request.user)
+        if not user.is_authenticated:
+            msg = "Autenticação obrigatória."
+            raise PermissionDenied(msg)
 
         if user.is_staff or user.is_superuser:
             return Affiliate.objects.select_related("user").all()
@@ -63,11 +66,19 @@ class AffiliateUpdateView(generics.UpdateAPIView):
     serializer_class = AffiliateSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def get_queryset(self) -> QuerySet[Affiliate]:
+    serializer_class = AffiliateSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self) -> Affiliate:
+        obj = super().get_object()
         user = cast("User", self.request.user)
-        if user.is_staff or user.is_superuser:
-            return Affiliate.objects.select_related("user").all()
-        return Affiliate.objects.filter(user=user)
+        if not (user.is_staff or user.is_superuser) and obj.user != user:
+            msg = "Você não tem permissão para alterar este afiliado."
+            raise PermissionDenied(msg)
+        return obj
+
+    def get_queryset(self) -> QuerySet[Affiliate]:
+        return Affiliate.objects.select_related("user").all()
 
 
 class AffiliateDeleteView(generics.DestroyAPIView):
@@ -79,17 +90,18 @@ class AffiliateDeleteView(generics.DestroyAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self) -> QuerySet[Affiliate]:
+        return Affiliate.objects.select_related("user").all()
+
+    def get_object(self) -> Affiliate:
+        obj = super().get_object()
         user = cast("User", self.request.user)
-        if user.is_staff or user.is_superuser:
-            return Affiliate.objects.select_related("user").all()
-        return Affiliate.objects.filter(user=user)
+        if not (user.is_staff or user.is_superuser) and obj.user != user:
+            msg = "Você não tem permissão para alterar este afiliado."
+            raise PermissionDenied(msg)
+        return obj
 
 
 class PayoutCreateView(generics.CreateAPIView):
-    """
-    Cria uma nova solicitação de pagamento (payout) para o afiliado autenticado.
-    """
-
     serializer_class = PayoutSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

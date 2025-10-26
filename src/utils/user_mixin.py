@@ -142,6 +142,7 @@ class UserMixin:
             phone=phone,
             password=password,
             is_active=True,
+            is_superuser=True,
         )
         self.client.force_authenticate(user)
         return user

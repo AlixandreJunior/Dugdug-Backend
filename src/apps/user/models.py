@@ -11,8 +11,8 @@ class User(AbstractUser):
         verbose_name_plural = "Users"
 
     email = models.EmailField(max_length=150, unique=True)
-    cpf = models.CharField(max_length=14, validators=[validate_cpf])
-    phone = models.CharField(max_length=15, validators=[validate_phone])
+    cpf = models.CharField(max_length=14, unique=True, validators=[validate_cpf])
+    phone = models.CharField(max_length=15, unique=True, validators=[validate_phone])
     password = models.CharField(max_length=128, null=False)
 
     objects = UserManager["User"]()
