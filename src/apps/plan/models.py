@@ -6,7 +6,7 @@ from apps.user.models import User
 
 
 class Plan(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     duration_days = models.PositiveIntegerField(default=30)
 

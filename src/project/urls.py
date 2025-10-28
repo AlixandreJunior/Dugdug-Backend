@@ -10,4 +10,5 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("refresh/", RefreshView.as_view(), name="refresh"),
     path("user/", include("apps.user.urls")),
     path("affiliate/", include("apps.affiliate.urls")),
+    path("plan/", include("apps.plan.urls")),
 ]

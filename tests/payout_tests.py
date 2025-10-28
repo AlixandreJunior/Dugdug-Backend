@@ -4,37 +4,10 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from apps.affiliate.models import Affiliate, Payout
-from apps.user.models import User
-from utils.user_mixin import UserMixin
+from apps.affiliate.models import Payout
+from utils.tests_mixins import AffiliateMixin
 
 
-class AffiliateMixin(UserMixin):
-    def make_affiliate(
-        self,
-        user: User | None = None,
-        code: str = "AFF123",
-        commission_balance: int = 0,
-        total_earned: int = 0,
-        pix_key: str = "123456789",
-        pix_key_type: str = "cpf",
-    ) -> Affiliate:
-        if user is None:
-            user = self.make_user_auth()
-
-        return Affiliate.objects.create(
-            user=user,
-            code=code,
-            commission_balance=commission_balance,
-            total_earned=total_earned,
-            pix_key=pix_key,
-            pix_key_type=pix_key_type,
-        )
-
-
-# ========================
-# TESTES DE PAYOUT
-# ========================
 class PayoutViewTests(APITestCase, AffiliateMixin):
     def setUp(self):
         self.client = APIClient()

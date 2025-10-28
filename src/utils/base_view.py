@@ -28,9 +28,17 @@ class BaseUserView(GenericAPIView):
 
 
 class BasePlanView(GenericAPIView):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAuthenticated,)
     serializer_class = PlanSerializer
     model = Plan
+
+    @override
+    def get_queryset(self) -> QuerySet["Plan"]:
+        return self.model.objects.all()
+
+    def get_object(self) -> Plan:
+        plan_name = self.kwargs.get("name")
+        return self.model.objects.get(name=plan_name)
 
 
 class BaseSubscriptionView(GenericAPIView):

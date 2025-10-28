@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from apps.user import models
+from apps.affiliate.models import Affiliate
+from apps.user.models import User
 
 if TYPE_CHECKING:
     from rest_framework.test import APIClient
@@ -21,11 +22,11 @@ class UserMixin:
         cpf: str = "123.456.789-09",
         phone: str = "(11) 91234-5678",
         password: str | None = None,
-    ) -> models.User:
+    ) -> User:
         """Cria um usuário autenticado e define como usuário atual do client."""
         password = password or os.getenv("TEST_USER_PASSWORD", "SenhaMuitoSegura123")
 
-        user: models.User = models.User.objects.create(
+        user: User = User.objects.create(
             username=username,
             first_name=first_name,
             last_name=last_name,
@@ -49,11 +50,11 @@ class UserMixin:
         cpf: str = "987.654.321-00",
         phone: str = "(11) 97654-3210",
         password: str | None = None,
-    ) -> models.User:
+    ) -> User:
         """Cria um usuário ativo mas não autenticado."""
         password = password or "SenhaMuitoSegura321"
 
-        user: models.User = models.User.objects.create(
+        user = User.objects.create(
             username=username,
             first_name=first_name,
             last_name=last_name,
@@ -75,11 +76,11 @@ class UserMixin:
         cpf: str = "321.654.987-00",
         phone: str = "(11) 99876-5432",
         password: str | None = None,
-    ) -> models.User:
+    ) -> User:
         """Cria um usuário inativo (não pode autenticar)."""
         password = password or "SenhaMuitoSegura213"
 
-        user: models.User = models.User.objects.create(
+        user = User.objects.create(
             username=username,
             first_name=first_name,
             last_name=last_name,
@@ -101,11 +102,11 @@ class UserMixin:
         cpf: str = "654.321.987-00",
         phone: str = "(11) 99999-1111",
         password: str | None = None,
-    ) -> models.User:
+    ) -> User:
         """Cria um usuário staff (admin, mas não superuser)."""
         password = password or "SenhaStaff123"
 
-        user: models.User = models.User.objects.create(
+        user = User.objects.create(
             username=username,
             first_name=first_name,
             last_name=last_name,
@@ -129,11 +130,11 @@ class UserMixin:
         cpf: str = "000.111.222-33",
         phone: str = "(11) 90000-0000",
         password: str | None = None,
-    ) -> models.User:
+    ) -> User:
         """Cria e autentica um superusuário (admin completo)."""
         password = password or "SenhaSuper123"
 
-        user: models.User = models.User.objects.create_superuser(
+        user = User.objects.create_superuser(
             username=username,
             first_name=first_name,
             last_name=last_name,
@@ -146,3 +147,26 @@ class UserMixin:
         )
         self.client.force_authenticate(user)
         return user
+
+
+class AffiliateMixin(UserMixin):
+    def make_affiliate(
+        self,
+        user: User | None = None,
+        code: str = "AFF123",
+        commission_balance: int = 0,
+        total_earned: int = 0,
+        pix_key: str = "123456789",
+        pix_key_type: str = "cpf",
+    ) -> Affiliate:
+        if user is None:
+            user = self.make_user_auth()
+
+        return Affiliate.objects.create(
+            user=user,
+            code=code,
+            commission_balance=commission_balance,
+            total_earned=total_earned,
+            pix_key=pix_key,
+            pix_key_type=pix_key_type,
+        )

@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.user.models import User
-from utils.user_mixin import UserMixin
+from utils.tests_mixins import UserMixin
 
 
 class UserViewTests(APITestCase, UserMixin):
