@@ -5,11 +5,17 @@ from apps.plan import views
 app_name = "plan"
 
 urlpatterns = [
+    # --------------------------
+    # Planos (URLs amigáveis)
+    # --------------------------
     path("list/", views.PlanListView.as_view(), name="list"),
     path("create/", views.PlanCreateView.as_view(), name="create"),
     path("detail/<str:name>/", views.PlanDetailView.as_view(), name="detail"),
     path("update/<str:name>/", views.PlanUpdateView.as_view(), name="update"),
     path("delete/<str:name>/", views.PlanDeleteView.as_view(), name="delete"),
+    # --------------------------
+    # Subscriptions - Usuário
+    # --------------------------
     path(
         "subscriptions/", views.SubscriptionListView.as_view(), name="subscription-list"
     ),
@@ -29,7 +35,7 @@ urlpatterns = [
         name="subscription-cancel",
     ),
     # --------------------------
-    # ADMIN
+    # Subscriptions - Admin
     # --------------------------
     path(
         "subscriptions/admin/",

@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from typing import cast
 
 from django.db import transaction
 from django.db.models.query import QuerySet
@@ -12,6 +13,7 @@ from rest_framework.serializers import BaseSerializer
 from apps.affiliate.models import Affiliate
 from apps.plan.models import Plan, Subscription
 from apps.plan.permissions import IsAdminOrReadOnly
+from apps.user.models import User
 from utils.base_view import BasePlanView, BaseSubscriptionView
 
 
@@ -44,7 +46,7 @@ class SubscriptionListView(generics.ListAPIView):
 class SubscriptionCreateView(BaseSubscriptionView, generics.CreateAPIView):
     @transaction.atomic
     def perform_create(self, serializer: BaseSerializer) -> None:
-        user = self.request.user
+        user = cast("User", self.request.user)
         plan_id = self.request.data.get("plan_id")
         affiliate_code = self.request.data.get("affiliate_code")
         payment_method = self.request.data.get("payment_method", "pix")
@@ -52,24 +54,29 @@ class SubscriptionCreateView(BaseSubscriptionView, generics.CreateAPIView):
         try:
             plan = Plan.objects.get(pk=plan_id)
         except Plan.DoesNotExist:
-            msg = {"plan_id": "Plano inválido."}
-            raise serializers.ValidationError(msg) from None
+            raise serializers.ValidationError({"plan_id": "Plano inválido."}) from None
 
+        # Datas
         start_date = timezone.now()
         end_date = start_date + timedelta(days=plan.duration_days)
 
+        # Afiliado
         affiliate = None
         if affiliate_code:
             try:
                 affiliate = Affiliate.objects.get(code=affiliate_code)
             except Affiliate.DoesNotExist:
-                msg = {"affiliate_code": "Código de afiliado inválido."}
-                raise serializers.ValidationError(msg) from None
-
+                raise serializers.ValidationError(
+                    {"affiliate_code": "Código de afiliado inválido."}
+                ) from None
             commission = plan.price * Decimal("0.10")
             affiliate.commission_balance += commission
             affiliate.total_earned += commission
             affiliate.save(update_fields=["commission_balance", "total_earned"])
+
+        # Simula pagamento via gateway
+        if not self.process_payment(user, plan.price, payment_method):
+            raise serializers.ValidationError({"payment": "Falha no pagamento."})
 
         serializer.save(
             costumer=user,
@@ -80,6 +87,9 @@ class SubscriptionCreateView(BaseSubscriptionView, generics.CreateAPIView):
             is_active=True,
             payment_method=payment_method,
         )
+
+    def process_payment(self, user: User, amount: Decimal, method: str) -> bool:
+        return True
 
 
 class SubscriptionDetailView(BaseSubscriptionView, generics.RetrieveAPIView):
@@ -95,18 +105,15 @@ class SubscriptionCancelView(BaseSubscriptionView, generics.UpdateAPIView):
         self, request: Request, *args: object, **kwargs: dict[str, object]
     ) -> Response:
         instance = self.get_object()
-
         if not instance.is_active:
             return Response(
                 {"error": "A assinatura já está cancelada."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         instance.is_active = False
         instance.save(update_fields=["is_active"])
         return Response(
-            {"message": "Assinatura cancelada com sucesso."},
-            status=status.HTTP_200_OK,
+            {"message": "Assinatura cancelada com sucesso."}, status=status.HTTP_200_OK
         )
 
 

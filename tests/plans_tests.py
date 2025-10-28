@@ -10,7 +10,6 @@ from utils.tests_mixins import UserMixin
 
 class PlanViewTests(APITestCase, UserMixin):
     def setUp(self):
-        # Usuários
         self.user = self.make_user_auth(username="user1")
         self.staff = self.make_staff_user(username="staff")
         self.superuser = self.make_superuser(username="admin")
