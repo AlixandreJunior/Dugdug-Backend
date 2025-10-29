@@ -17,6 +17,9 @@ class User(AbstractUser):
 
     objects = UserManager["User"]()
 
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["email", "cpf", "phone"]
+
     groups = None
     user_permissions = None
 
