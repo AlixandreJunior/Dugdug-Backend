@@ -23,7 +23,6 @@ class SubscriptionViewTests(APITestCase, AffiliateMixin):
             email="otheruser@gmail.com",
         )
 
-        # Planos
         self.plan = Plan.objects.create(
             name="Plano Bronze", price=Decimal("100.00"), duration_days=30
         )
@@ -31,10 +30,8 @@ class SubscriptionViewTests(APITestCase, AffiliateMixin):
             name="Plano Prata", price=Decimal("200.00"), duration_days=60
         )
 
-        # Afiliado
         self.affiliate = self.make_affiliate(user=self.user, code="AFF12345")
 
-        # Subscription
         self.subscription = Subscription.objects.create(
             costumer=self.user,
             plan=self.plan,
@@ -45,7 +42,6 @@ class SubscriptionViewTests(APITestCase, AffiliateMixin):
             payment_method="pix",
         )
 
-        # URLs
         self.subscription_list_url = reverse("plan:subscription-list")
         self.subscription_create_url = reverse("plan:subscription-create")
         self.subscription_detail_url = reverse(
@@ -56,9 +52,6 @@ class SubscriptionViewTests(APITestCase, AffiliateMixin):
         )
         self.subscription_admin_list_url = reverse("plan:subscription-admin-list")
 
-    # ----------------------------
-    # Listar Subscriptions
-    # ----------------------------
     def test_list_subscriptions_authenticated_user(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.subscription_list_url)
